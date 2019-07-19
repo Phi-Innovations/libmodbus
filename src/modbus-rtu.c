@@ -91,6 +91,9 @@ static const uint8_t table_crc_lo[] = {
  * internal slave ID in slave mode */
 static int _modbus_set_slave(modbus_t *ctx, int slave)
 {
+    /* Adding slave type for single operation */
+    ctx->slaveType = _MODBUS_SLAVE_TYPE_SINGLE;
+
     /* Broadcast address is 0 (MODBUS_BROADCAST_ADDRESS) */
     if (slave >= 0 && slave <= 247) {
         ctx->slave = slave;
@@ -99,6 +102,27 @@ static int _modbus_set_slave(modbus_t *ctx, int slave)
         return -1;
     }
 
+    return 0;
+}
+
+static int _modbus_set_slave_list(modbus_t *ctx, int *slaveList, int nbSlaves) 
+{
+	int i = 0;
+
+    ctx->slaveType = _MODBUS_SLAVE_TYPE_LIST;
+
+    /*
+     * Sanity check
+     */
+    if (!slaveList) {
+    	return -1;
+    }
+
+    ctx->slaveList.nbSlaves = nbSlaves;
+    for(i=0;i<ctx->slaveList.nbSlaves;i++) {
+    	ctx->slaveList.slaves[i] = slaveList[i];
+    }
+    
     return 0;
 }
 
@@ -362,15 +386,40 @@ static int _modbus_rtu_check_integrity(modbus_t *ctx, uint8_t *msg,
     uint16_t crc_calculated;
     uint16_t crc_received;
     int slave = msg[0];
+    int i = 0;
+    int found = 0;
+
+    if (ctx->slaveType == _MODBUS_SLAVE_TYPE_LIST) {
+    	/* Check if the received slave list. If it is, the context standard slave
+    	 * number will be replaced by the arrived number. The expectation is that
+    	 * everything will run smoothly.
+    	 */
+    	for(i=0;((i<ctx->slaveList.nbSlaves)) && (found == 0);i++) {
+    		if (ctx->slaveList.slaves[i] == slave) {
+    			if (ctx->debug) {
+    				printf("Found received slave in the list: %d\n", slave);
+    			}
+    			ctx->slave = slave;
+    			/* Get out of the loop */
+    			found = 1;
+    		}
+    	}
+    	if (!found) {
+    		if (ctx->debug) {
+    			printf("Received slave not found in the list: %d\n", slave);
+    			return 0;
+    		}
+    	}
+    }
 
     /* Filter on the Modbus unit identifier (slave) in RTU mode to avoid useless
      * CRC computing. */
     if (slave != ctx->slave && slave != MODBUS_BROADCAST_ADDRESS) {
-        if (ctx->debug) {
-            printf("Request for slave %d ignored (not %d)\n", slave, ctx->slave);
-        }
-        /* Following call to check_confirmation handles this error */
-        return 0;
+    	if (ctx->debug) {
+    		printf("Request for slave %d ignored (not %d)\n", slave, ctx->slave);
+    	}
+    	/* Following call to check_confirmation handles this error */
+    	return 0;
     }
 
     crc_calculated = crc16(msg, msg_length - 2);
@@ -1215,7 +1264,8 @@ const modbus_backend_t _modbus_rtu_backend = {
     _modbus_rtu_close,
     _modbus_rtu_flush,
     _modbus_rtu_select,
-    _modbus_rtu_free
+    _modbus_rtu_free,
+	_modbus_set_slave_list
 };
 
 modbus_t* modbus_new_rtu(const char *device,

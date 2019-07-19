@@ -1589,6 +1589,17 @@ int modbus_set_slave(modbus_t *ctx, int slave)
     return ctx->backend->set_slave(ctx, slave);
 }
 
+int modbus_set_slave_list(modbus_t *ctx, int *list, int list_len)
+{
+    if (ctx == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return ctx->backend->set_slave_list(ctx, list, list_len);
+}
+
+
 int modbus_get_slave(modbus_t *ctx)
 {
     if (ctx == NULL) {

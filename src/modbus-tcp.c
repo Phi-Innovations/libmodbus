@@ -76,6 +76,9 @@ static int _modbus_tcp_init_win32(void)
 
 static int _modbus_set_slave(modbus_t *ctx, int slave)
 {
+    /* Adding slave type for single operation */
+    ctx->slaveType = _MODBUS_SLAVE_TYPE_SINGLE;
+    
     /* Broadcast address is 0 (MODBUS_BROADCAST_ADDRESS) */
     if (slave >= 0 && slave <= 247) {
         ctx->slave = slave;
@@ -89,6 +92,27 @@ static int _modbus_set_slave(modbus_t *ctx, int slave)
     }
 
     return 0;
+}
+
+static int _modbus_set_slave_list(modbus_t *ctx, int *slaveList, int nbSlaves) 
+{
+	int i = 0;
+
+	ctx->slaveType = _MODBUS_SLAVE_TYPE_LIST;
+
+	/*
+	 * Sanity check
+	 */
+	if (!slaveList) {
+		return -1;
+	}
+
+	ctx->slaveList.nbSlaves = nbSlaves;
+	for(i=0;i<ctx->slaveList.nbSlaves;i++) {
+		ctx->slaveList.slaves[i] = slaveList[i];
+	}
+
+	return 0;
 }
 
 /* Builds a TCP request header */
@@ -763,7 +787,8 @@ const modbus_backend_t _modbus_tcp_backend = {
     _modbus_tcp_close,
     _modbus_tcp_flush,
     _modbus_tcp_select,
-    _modbus_tcp_free
+    _modbus_tcp_free,
+	_modbus_set_slave_list
 };
 
 
@@ -786,7 +811,8 @@ const modbus_backend_t _modbus_tcp_pi_backend = {
     _modbus_tcp_close,
     _modbus_tcp_flush,
     _modbus_tcp_select,
-    _modbus_tcp_free
+    _modbus_tcp_free,
+	_modbus_set_slave_list
 };
 
 modbus_t* modbus_new_tcp(const char *ip, int port)

@@ -39,6 +39,11 @@ MODBUS_BEGIN_DECLS
 #define _RESPONSE_TIMEOUT    500000
 #define _BYTE_TIMEOUT        500000
 
+/* Adding support for reading more than one slave address */
+#define _MODBUS_SLAVE_TYPE_SINGLE   1
+#define _MODBUS_SLAVE_TYPE_LIST     2
+#define _MODBUS_MAX_NB_SLAVES       256
+
 typedef enum {
     _MODBUS_BACKEND_TYPE_RTU=0,
     _MODBUS_BACKEND_TYPE_TCP
@@ -87,11 +92,19 @@ typedef struct _modbus_backend {
     int (*flush) (modbus_t *ctx);
     int (*select) (modbus_t *ctx, fd_set *rset, struct timeval *tv, int msg_length);
     void (*free) (modbus_t *ctx);
+    int (*set_slave_list) (modbus_t *ctx, int *slaveList, int nbSlaves);
 } modbus_backend_t;
 
+struct _modbus_slave_list {
+    int nbSlaves;
+    int slaves[_MODBUS_MAX_NB_SLAVES];
+};
+
 struct _modbus {
+    int slaveType;
     /* Slave address */
     int slave;
+    struct _modbus_slave_list slaveList;
     /* Socket or file descriptor */
     int s;
     int debug;
