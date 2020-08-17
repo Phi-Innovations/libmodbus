@@ -177,7 +177,7 @@ typedef enum
 } modbus_error_recovery_mode;
 
 MODBUS_API int modbus_set_slave(modbus_t* ctx, int slave);
-int modbus_set_slave_list(modbus_t *ctx, int *list, int list_len);
+MODBUS_API int modbus_set_slave_list(modbus_t *ctx, int *list, int list_len);
 MODBUS_API int modbus_get_slave(modbus_t* ctx);
 MODBUS_API int modbus_set_error_recovery(modbus_t *ctx, modbus_error_recovery_mode error_recovery);
 MODBUS_API int modbus_set_socket(modbus_t *ctx, int s);
