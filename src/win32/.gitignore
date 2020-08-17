@@ -1,0 +1,11 @@
+Backup*
+Debug
+Release
+.vs/
+Upgrade*
+*.dll
+*.lib
+*.map
+*.pdb
+*.res
+*.exp
