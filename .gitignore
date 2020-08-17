@@ -17,7 +17,6 @@ Makefile.in
 /aclocal.m4
 /autom4te.cache
 /build-aux
-/config.*
 /configure
 /configure.scan
 /depcomp
@@ -45,3 +44,7 @@ doc/*.html
 doc/*.3
 doc/*.7
 *.exe
+config.h
+config.status
+config.h.in
+build*
