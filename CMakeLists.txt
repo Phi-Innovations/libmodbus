@@ -66,13 +66,18 @@ set(MODBUS_PUBLIC_HEADERS
     ${CMAKE_CURRENT_BINARY_DIR}/modbus-version.h
 )
 
-
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 option(BUILD_SHARED_LIBS "Build libmodbus as a shared library" ON)
 
 add_library(modbus ${MODBUS_SOURCES})
+
+target_include_directories (modbus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 set_target_properties(modbus PROPERTIES PUBLIC_HEADER "${MODBUS_PUBLIC_HEADERS}")
+if(WIN32)
+  target_link_libraries(modbus wsock32 ws2_32)
+endif()
 
 set(LIBMODBUS_SOVERSION_VERSION 5.1.0)
 set(LIBMODBUS_SOVERSION_SOVERSION 5)
