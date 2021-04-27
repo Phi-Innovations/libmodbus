@@ -68,8 +68,6 @@ set(MODBUS_PUBLIC_HEADERS
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-option(BUILD_SHARED_LIBS "Build libmodbus as a shared library" ON)
-
 add_library(modbus STATIC ${MODBUS_SOURCES})
 
 target_include_directories (modbus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
