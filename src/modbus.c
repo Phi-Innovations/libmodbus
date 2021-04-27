@@ -1000,6 +1000,101 @@ int modbus_reply(modbus_t *ctx, const uint8_t *req,
             slave == MODBUS_BROADCAST_ADDRESS) ? 0 : send_msg(ctx, rsp, rsp_length);
 }
 
+/* Send a response to the received request.
+   Analyses the request and constructs a response.
+   The value to be read or write is not provided by mb_mapping.
+   It works for singe registers operations only.
+   It is supported only by commands 3, 4 and 16
+   Assuming that address validation is done before
+
+   If an error occurs, this function construct the response
+   accordingly.
+*/
+int modbus_reply_val(modbus_t *ctx, const uint8_t *req,
+                 int req_length, uint8_t *data)
+{
+    int offset;
+    int slave;
+    int function;
+    uint8_t rsp[MAX_MESSAGE_LENGTH];
+    int rsp_length = 0;
+    sft_t sft;
+
+    if (ctx == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    offset = ctx->backend->header_length;
+    slave = req[offset - 1];
+    function = req[offset];
+
+    sft.slave = slave;
+    sft.function = function;
+    sft.t_id = ctx->backend->prepare_response_tid(req, &req_length);
+
+    /* Data are flushed on illegal number of values errors. */
+    switch (function) {
+    case MODBUS_FC_READ_HOLDING_REGISTERS:
+    case MODBUS_FC_READ_INPUT_REGISTERS: {
+        unsigned int is_input = (function == MODBUS_FC_READ_INPUT_REGISTERS);
+        const char * const name = is_input ? "read_input_registers" : "read_registers";
+        int nb = (req[offset + 3] << 8) + req[offset + 4];
+
+        /* Max possible size for a register is a double size, of 8 bytes */
+        if ((nb < 1) || (nb > 8)) {
+            rsp_length = response_exception(
+                ctx, &sft, MODBUS_EXCEPTION_ILLEGAL_DATA_VALUE, rsp, TRUE,
+                "Illegal nb of values %d in %s (max %d)\n",
+                nb, name, MODBUS_MAX_READ_REGISTERS);
+        }
+        else {
+            int i;
+
+            rsp_length = ctx->backend->build_response_basis(&sft, rsp);
+            rsp[rsp_length++] = nb << 1;
+            for (i = 0; i < 2; i++) {
+                rsp[rsp_length++] = data[i] >> 8;
+                rsp[rsp_length++] = data[i] & 0xFF;
+            }
+        }
+    }
+        break;
+    case MODBUS_FC_WRITE_MULTIPLE_REGISTERS: {
+        int nb = (req[offset + 3] << 8) + req[offset + 4];
+        
+        /* Max possible size for a register is a double size, of 8 bytes */
+        if ((nb < 1) || (nb > 8)) {
+            rsp_length = response_exception(
+                ctx, &sft, MODBUS_EXCEPTION_ILLEGAL_DATA_VALUE, rsp, TRUE,
+                "Illegal number of values %d in write_registers (max %d)\n",
+                nb, MODBUS_MAX_WRITE_REGISTERS);
+        } else {
+            int i, j;
+            for (i = 0, j = 6; i < 2; i++, j += 2) {
+                /* 6 and 7 = first value */
+                data[i] = (req[offset + j] << 8) + req[offset + j + 1];
+            }
+
+            rsp_length = ctx->backend->build_response_basis(&sft, rsp);
+            /* 4 to copy the address (2) and the no. of registers */
+            memcpy(rsp + rsp_length, req + rsp_length, 4);
+            rsp_length += 4;
+        }
+    }
+        break;
+    default:
+        rsp_length = response_exception(
+            ctx, &sft, MODBUS_EXCEPTION_ILLEGAL_FUNCTION, rsp, TRUE,
+            "Unknown Modbus function code: 0x%0X\n", function);
+        break;
+    }
+
+    /* Suppress any responses when the request was a broadcast */
+    return (ctx->backend->backend_type == _MODBUS_BACKEND_TYPE_RTU &&
+            slave == MODBUS_BROADCAST_ADDRESS) ? 0 : send_msg(ctx, rsp, rsp_length);
+}
+
 int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
                            unsigned int exception_code)
 {
