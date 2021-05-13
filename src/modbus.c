@@ -1039,7 +1039,10 @@ int modbus_reply_val(modbus_t *ctx, const uint8_t *req,
     case MODBUS_FC_READ_INPUT_REGISTERS: {
         unsigned int is_input = (function == MODBUS_FC_READ_INPUT_REGISTERS);
         const char * const name = is_input ? "read_input_registers" : "read_registers";
-        int nb = (req[offset + 3] << 8) + req[offset + 4];
+        /*
+         * Output must be provided in bytes. Request is done in words
+         */
+        int nb = ((req[offset + 3] << 8) + req[offset + 4]) * 2;
 
         /* Max possible size for a register is a double size, of 8 bytes */
         if ((nb < 1) || (nb > 8)) {
@@ -1052,16 +1055,19 @@ int modbus_reply_val(modbus_t *ctx, const uint8_t *req,
             int i;
 
             rsp_length = ctx->backend->build_response_basis(&sft, rsp);
-            rsp[rsp_length++] = nb << 1;
-            for (i = 0; i < 2; i++) {
-                rsp[rsp_length++] = data[i] >> 8;
-                rsp[rsp_length++] = data[i] & 0xFF;
+            rsp[rsp_length++] = nb;
+            for (i = 0; i < nb; i++) {
+                rsp[rsp_length++] = data[i];
             }
         }
     }
         break;
     case MODBUS_FC_WRITE_MULTIPLE_REGISTERS: {
-        int nb = (req[offset + 3] << 8) + req[offset + 4];
+        /*
+         * Data is saved in bytes. Number of registers is provided in
+         * words
+         */
+        int nb = ((req[offset + 3] << 8) + req[offset + 4]) * 2;
         
         /* Max possible size for a register is a double size, of 8 bytes */
         if ((nb < 1) || (nb > 8)) {
@@ -1071,9 +1077,11 @@ int modbus_reply_val(modbus_t *ctx, const uint8_t *req,
                 nb, MODBUS_MAX_WRITE_REGISTERS);
         } else {
             int i, j;
-            for (i = 0, j = 6; i < 2; i++, j += 2) {
+            // for (i = 0, j = 6; i < 2; i++, j += 2) {
+            for (i = 0, j = 6; i < nb; i++, j++) {
                 /* 6 and 7 = first value */
-                data[i] = (req[offset + j] << 8) + req[offset + j + 1];
+                // data[i] = (req[offset + j] << 8) + req[offset + j + 1];
+                data[i] = req[offset + j];
             }
 
             rsp_length = ctx->backend->build_response_basis(&sft, rsp);
