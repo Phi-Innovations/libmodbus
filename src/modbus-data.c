@@ -231,3 +231,43 @@ void modbus_set_float(float f, uint16_t *dest)
     dest[0] = (uint16_t)i;
     dest[1] = (uint16_t)(i >> 16);
 }
+
+void modbus_set_double(double f, uint16_t *dest)
+{
+    uint64_t i;
+
+    memcpy(&i, &f, sizeof(uint64_t));
+    dest[0] = (uint16_t)i;
+    dest[1] = (uint16_t)(i >> 16);
+    dest[2] = (uint16_t)(i >> 32);
+    dest[3] = (uint16_t)(i >> 48);
+}
+
+double modbus_get_double(const uint16_t *src) {
+    double f;
+    uint64_t i;
+
+    i = (((uint64_t)src[1]) << 48) + (((uint64_t)src[1]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    memcpy(&f, &i, sizeof(float));
+
+    return f;
+}
+
+void modbus_set_uint32(uint32_t f, uint16_t *dest)
+{
+    uint32_t i;
+
+    memcpy(&i, &f, sizeof(uint32_t));
+    dest[0] = (uint16_t)i;
+    dest[1] = (uint16_t)(i >> 16);
+}
+
+uint32_t modbus_get_uint32(const uint16_t *src) {
+    uint32_t f;
+    uint32_t i;
+
+    i = (((uint64_t)src[1]) << 16) + src[0];
+    memcpy(&f, &i, sizeof(float));
+
+    return f;
+}

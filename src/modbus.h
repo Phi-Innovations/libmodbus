@@ -237,7 +237,7 @@ MODBUS_API int modbus_receive_confirmation(modbus_t *ctx, uint8_t *rsp);
 MODBUS_API int modbus_reply(modbus_t *ctx, const uint8_t *req,
                             int req_length, modbus_mapping_t *mb_mapping);
 MODBUS_API int modbus_reply_val(modbus_t *ctx, const uint8_t *req,
-                            int req_length, uint8_t *data);
+                            int req_length, uint16_t *data);
 MODBUS_API int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
                                       unsigned int exception_code);
 
@@ -281,12 +281,16 @@ MODBUS_API float modbus_get_float_abcd(const uint16_t *src);
 MODBUS_API float modbus_get_float_dcba(const uint16_t *src);
 MODBUS_API float modbus_get_float_badc(const uint16_t *src);
 MODBUS_API float modbus_get_float_cdab(const uint16_t *src);
+MODBUS_API double modbus_get_double(const uint16_t *src);
+MODBUS_API uint32_t modbus_get_uint32(const uint16_t *src);
 
 MODBUS_API void modbus_set_float(float f, uint16_t *dest);
 MODBUS_API void modbus_set_float_abcd(float f, uint16_t *dest);
 MODBUS_API void modbus_set_float_dcba(float f, uint16_t *dest);
 MODBUS_API void modbus_set_float_badc(float f, uint16_t *dest);
 MODBUS_API void modbus_set_float_cdab(float f, uint16_t *dest);
+MODBUS_API void modbus_set_double(double f, uint16_t *dest);
+MODBUS_API void modbus_set_uint32(uint32_t f, uint16_t *dest);
 
 #include "modbus-tcp.h"
 #include "modbus-rtu.h"
